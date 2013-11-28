@@ -339,8 +339,8 @@ var alphaTabWrapper;
         {
             // ensure notify of error message
             var canvas = this.tablature.canvas;
-            canvas.setWidth(this.options.width);
-            canvas.setHeight(this.options.height);
+            canvas.set_width(this.options.width);
+            canvas.set_height(this.options.height);
             this.tablature.onFinished();
         }
     }
