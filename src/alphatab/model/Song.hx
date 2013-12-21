@@ -158,7 +158,7 @@ class Song
 		}
 			
 		_currentRepeatGroup.addMeasureHeader(header);		
-	}
+    }
     
     /**
      * Adds a new track to the song. 
@@ -169,4 +169,11 @@ class Song
         track.song = this;
         tracks.push(track);
     }
+
+    public function measureCount() : Int {
+        return Lambda.fold(tracks, function(trackA, trackB) {
+                return if (trackB == null || trackA.measureCount() > trackB.measureCount()) trackA else trackB;
+        }, null).measureCount();
+    }
+
 }
