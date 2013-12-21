@@ -105,6 +105,10 @@ class Tablature
         {
             viewLayout = new PageViewLayout();
         }
+        else if (layout == "multitrack")
+        {
+            viewLayout = new MultitrackViewLayout();
+        }
         else
         {
             viewLayout = new PageViewLayout();
