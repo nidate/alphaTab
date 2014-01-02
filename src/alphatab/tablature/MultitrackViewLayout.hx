@@ -39,41 +39,70 @@ class MultitrackViewLayout extends HorizontalViewLayout
     
     private var _lines:Array<StaveLine>;
 
+    // 意味的にはHorizontalViewLayoutを継承していない
     public override function prepareLayout(clientArea:Rectangle, x:Int, y:Int) : Void
     {
         width = 0;
         height = 0;
-        
         var posY:Int = y;
         
         var track:Track = tablature.track;
         var song:Song = track.song;
 
         var measureCount:Int = song.measureCount();
-        var nextMeasureIndex:Int = 0;
         
         x += contentPadding.left;
         posY = Math.floor(posY + firstMeasureSpacing);
          
-        while (measureCount > nextMeasureIndex) 
-        {
-            // calculate a stave line
-            _line = getStaveLine(track, nextMeasureIndex, posY, x); // useless
-            _lines = new Array<StaveLine>();
-            for (track in song.tracks) {
-              var line:StaveLine = getStaveLine(track, nextMeasureIndex, posY, x);
-              posY += line.getHeight();
-              _lines.push(line);
-            }
-
-            // next measure index
-            nextMeasureIndex = _line.lastIndex() + 1;
+        _line = getStaveLine(track, 0, posY, x); // useless
+        _lines = new Array<StaveLine>();
+        for (track in song.tracks) {
+            var line:StaveLine = getStaveLine(track, 0, posY, x);
+            posY += line.getHeight();
+            _lines.push(line);
         }
+        
+        //staveLine中のmeasureの幅を計算、staveLineの幅を再計算
+        //measure.alignmentMultitrack(this);
         
         height = posY + contentPadding.bottom;
         
         width = _line.width + PAGE_PADDING.getHorizontal();
         layoutSize = new Point(width, height);
+    }
+
+    // 意味的にはHorizontalViewLayoutを継承していない
+    public override function getStaveLine(track:Track, startIndex:Int, y:Int, x:Int) : StaveLine
+    {
+        var line:StaveLine = createStaveLine(track);
+        line.y = y;
+        line.x = x;
+                
+        // default spacings
+        line.spacing.set(StaveLine.TopPadding, Math.floor(10 * scale));
+        line.spacing.set(StaveLine.BottomSpacing, Math.floor(10 * scale));
+        
+        var measureCount = track.measureCount(); 
+        x = 0;
+        for (i in startIndex ... measureCount) 
+        {
+            var measure:MeasureDrawing = cast track.measures[i];
+            measure.staveLine = line;
+            measure.performLayout(this);
+            // 初期化されていないトラックmeasure.staveLineがnullになる。
+            //measure.alignmentMultitrack(this);
+            measure.x = x;            
+            x += measure.width;            
+            
+            for (stave in line.staves)
+            {
+                stave.prepare(measure);
+            }
+                    
+            line.addMeasure(i);
+        }
+        line.width = x;        
+        return line;
     }
 
     public override function paintSong(ctx:DrawingContext, clientArea:Rectangle, x:Int, y:Int) : Void
