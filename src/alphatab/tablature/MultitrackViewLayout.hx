@@ -39,7 +39,6 @@ class MultitrackViewLayout extends HorizontalViewLayout
     
     private var _lines:Array<StaveLine>;
 
-    // 意味的にはHorizontalViewLayoutを継承していない
     public override function prepareLayout(clientArea:Rectangle, x:Int, y:Int) : Void
     {
         width = 0;
@@ -53,56 +52,66 @@ class MultitrackViewLayout extends HorizontalViewLayout
         
         x += contentPadding.left;
         posY = Math.floor(posY + firstMeasureSpacing);
-         
-        _line = getStaveLine(track, 0, posY, x); // useless
-        _lines = new Array<StaveLine>();
-        for (track in song.tracks) {
-            var line:StaveLine = getStaveLine(track, 0, posY, x);
+        _lines = getStaveLines(song, 0, posY, x);
+        for (line in _lines) {
             posY += line.getHeight();
-            _lines.push(line);
         }
-        
-        //staveLine中のmeasureの幅を計算、staveLineの幅を再計算
-        //measure.alignmentMultitrack(this);
-        
+    
         height = posY + contentPadding.bottom;
         
-        width = _line.width + PAGE_PADDING.getHorizontal();
+        width = _lines[0].width + PAGE_PADDING.getHorizontal();
         layoutSize = new Point(width, height);
     }
 
-    // 意味的にはHorizontalViewLayoutを継承していない
-    public override function getStaveLine(track:Track, startIndex:Int, y:Int, x:Int) : StaveLine
+    public function getStaveLines(song:Song, startIndex:Int, startY:Int, startX:Int) : Array<StaveLine>
     {
-        var line:StaveLine = createStaveLine(track);
-        line.y = y;
-        line.x = x;
-                
-        // default spacings
-        line.spacing.set(StaveLine.TopPadding, Math.floor(10 * scale));
-        line.spacing.set(StaveLine.BottomSpacing, Math.floor(10 * scale));
+        _lines = [];
+        var y = startY;
+        for (track in song.tracks) {
+            var line:StaveLine = createStaveLine(track);
+            line.y = y;
+            line.x = startX;
+            line.spacing.set(StaveLine.TopPadding, Math.floor(10 * scale));
+            line.spacing.set(StaveLine.BottomSpacing, Math.floor(10 * scale));
+            _lines.push(line);
+        }
         
-        var measureCount = track.measureCount(); 
-        x = 0;
+        var measureCount = song.tracks[0].measureCount();
+        var x = 0;
         for (i in startIndex ... measureCount) 
         {
-            var measure:MeasureDrawing = cast track.measures[i];
-            measure.staveLine = line;
-            measure.performLayout(this);
-            // 初期化されていないトラックmeasure.staveLineがnullになる。
-            //measure.alignmentMultitrack(this);
-            measure.x = x;            
-            x += measure.width;            
-            
-            for (stave in line.staves)
-            {
-                stave.prepare(measure);
+            var maxWidth = 0;
+            for (trackIndex in 0 ... song.tracks.length) {
+                var track:Track = song.tracks[trackIndex];
+                var line = _lines[trackIndex];
+                var measure:MeasureDrawing = cast track.measures[i];
+                measure.staveLine = line;
+                measure.performLayout(this);
+                measure.x = x;
+                if (measure.width > maxWidth) {
+                    maxWidth = measure.width;
+                }
             }
-                    
-            line.addMeasure(i);
+            for (trackIndex in 0 ... song.tracks.length) {
+                var track:Track = song.tracks[trackIndex];
+                var line = _lines[trackIndex];
+                var measure:MeasureDrawing = cast track.measures[i];
+                measure.width = maxWidth;
+                for (stave in line.staves)
+                {
+                    stave.prepare(measure);
+                }
+                line.addMeasure(i);
+            }
+            x += maxWidth;
         }
-        line.width = x;        
-        return line;
+        y = 0;
+        for (line in _lines) {
+            line.width = x;
+            line.y = y;
+            y += line.getHeight();
+        }
+        return _lines;
     }
 
     public override function paintSong(ctx:DrawingContext, clientArea:Rectangle, x:Int, y:Int) : Void

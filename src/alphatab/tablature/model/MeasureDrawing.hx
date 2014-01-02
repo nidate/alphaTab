@@ -22,6 +22,8 @@ import alphatab.model.MeasureHeader;
 import alphatab.model.Note;
 import alphatab.model.TripletFeel;
 import alphatab.model.VoiceDirection;
+import alphatab.model.Song;
+import alphatab.model.Track;
 import alphatab.tablature.staves.StaveLine;
 import alphatab.tablature.ViewLayout;
 
@@ -135,7 +137,7 @@ class MeasureDrawing extends Measure
     public var maxNote(default,default):NoteDrawing;   
     public var divisionLength(default,default):Int;
     public var groups(default,default):Array<BeatGroup>;
-    
+
     public function checkNote(note:NoteDrawing)
     {        
         if (minNote == null || minNote.realValue() > note.realValue())
@@ -225,17 +227,13 @@ class MeasureDrawing extends Measure
     
     // calculates the layout for this measure
     public function performLayout(layout:ViewLayout) : Void
-    {       
+    {
         groups = new Array<BeatGroup>();
-        width = 0;
         spacing = 0;
         effectsCache.reset();
         
         registerSpacings(layout);
         
-        // default spacing on start
-        width += getDefaultSpacings(layout, true);         
-         
         // do beat layouting
         var beatX = 0;
         for (i in 0 ... beatCount()) 
@@ -273,10 +271,13 @@ class MeasureDrawing extends Measure
                 }
             }
         }
-        
-        width += beatX;
+        if (width == null) {
+            width = 0;
+	          width += getDefaultSpacings(layout, true);         
+            width += beatX;
+        }
     }
-    
+
     public function getPreviousMeasure() 
     {
         if (_prevMeasure == null) // initialize
